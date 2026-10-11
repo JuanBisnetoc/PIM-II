@@ -1,0 +1,4 @@
+cmake-build-*/
+build/
+*.db
+relatorio_*.txt
