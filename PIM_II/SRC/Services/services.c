@@ -18,7 +18,7 @@ const char *srv_mensagem(SrvResultado r) {
     case SRV_ERRO_DB:                  return "Erro no banco de dados.";
     case SRV_ERRO_NAO_ENCONTRADO:      return "Registro não encontrado.";
     case SRV_ERRO_CAMPO_VAZIO:         return "Preencha todos os campos obrigatórios.";
-    case SRV_ERRO_CPF_INVALIDO:        return "CPF inválido.";
+    case SRV_ERRO_CPF_INVALIDO:        return "CPF inválido. Informe 11 dígitos.";
     case SRV_ERRO_CPF_DUPLICADO:       return "Já existe um beneficiário com este CPF.";
     case SRV_ERRO_DATA_INVALIDA:       return "Data inválida. Use DD/MM/AAAA (não pode ser futura).";
     case SRV_ERRO_TELEFONE_INVALIDO:   return "Telefone inválido. Informe DDD + número (10 ou 11 dígitos).";
@@ -162,7 +162,21 @@ void srv_somente_digitos(char *dest, size_t tam, const char *origem) {
     dest[j] = '\0';
 }
 
+/* Validação de CPF FLEXÍVEL: aceita qualquer sequência de 11 dígitos, inclusive
+ * CPFs fictícios (dígitos verificadores incorretos ou todos iguais, como
+ * 111.111.111-11). A unicidade continua sendo checada ao salvar.
+ *
+ * Para voltar à validação oficial (módulo 11), troque o corpo desta função pela
+ * versão em srv_cpf_valido_oficial(), logo abaixo. */
 int srv_cpf_valido(const char *cpf) {
+    if (!cpf || strlen(cpf) != 11) return 0;
+    for (int i = 0; i < 11; i++)
+        if (!isdigit((unsigned char)cpf[i])) return 0;
+    return 1;
+}
+
+/* Validação oficial (dígitos verificadores). Mantida para uso futuro. */
+int srv_cpf_valido_oficial(const char *cpf) {
     if (!cpf || strlen(cpf) != 11) return 0;
     int iguais = 1;
     for (int i = 0; i < 11; i++) {

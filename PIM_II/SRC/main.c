@@ -5,6 +5,7 @@
 
 static void ao_ativar(GtkApplication *app, gpointer dados) {
     (void)dados;
+    ui_aplicar_estilo();
     GtkWidget *janela = ui_main_window_criar(app);
     gtk_window_present(GTK_WINDOW(janela));
 }

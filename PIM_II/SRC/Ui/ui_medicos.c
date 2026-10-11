@@ -118,7 +118,7 @@ static void ao_filtro_check(GtkCheckButton *c, gpointer dados) {
 }
 
 static void ao_destruir(GtkWidget *w, gpointer dados) {
-    (void)w;
+    ui_desconectar(w, dados);   /* nenhum callback roda após o free */
     TelaMedicos *t = dados;
     free(t->itens);
     g_free(t);
@@ -133,12 +133,17 @@ void ui_medicos_abrir(GtkWindow *pai) {
     TelaMedicos *t = g_new0(TelaMedicos, 1);
     g_tela = t;
 
-    GtkWidget *janela = ui_janela_criar(pai, "Médicos", 640, 600);
+    GtkWidget *janela = ui_janela_criar(pai, "Médicos", 680, 620);
     t->janela = GTK_WINDOW(janela);
     g_signal_connect(janela, "destroy", G_CALLBACK(ao_destruir), t);
 
-    GtkWidget *caixa = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
-    ui_margens(caixa, 14);
+    GtkWidget *caixa = gtk_box_new(GTK_ORIENTATION_VERTICAL, 12);
+    ui_margens(caixa, 18);
+
+    GtkWidget *titulo = gtk_label_new("Dados do médico");
+    gtk_label_set_xalign(GTK_LABEL(titulo), 0.0f);
+    gtk_widget_add_css_class(titulo, "secao-titulo");
+    gtk_box_append(GTK_BOX(caixa), titulo);
 
     GtkWidget *grade = gtk_grid_new();
     gtk_grid_set_row_spacing(GTK_GRID(grade), 8);
@@ -163,6 +168,8 @@ void ui_medicos_abrir(GtkWindow *pai) {
     g_signal_connect(b_novo, "clicked", G_CALLBACK(ao_novo), t);
     g_signal_connect(b_salvar, "clicked", G_CALLBACK(ao_salvar), t);
     g_signal_connect(t->btn_ativo, "clicked", G_CALLBACK(ao_alternar_ativo), t);
+
+    gtk_box_append(GTK_BOX(caixa), gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
 
     GtkWidget *filtros = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
     t->busca = ui_entry_criar(40, "Buscar por nome, CRM ou especialidade");

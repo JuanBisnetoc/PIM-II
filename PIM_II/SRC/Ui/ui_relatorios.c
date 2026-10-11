@@ -50,7 +50,7 @@ static void ao_salvar(GtkButton *b, gpointer dados) {
 }
 
 static void ao_destruir(GtkWidget *w, gpointer dados) {
-    (void)w;
+    ui_desconectar(w, dados);   /* nenhum callback roda após o free */
     TelaRelatorios *t = dados;
     free(t->ultimo_texto);
     g_free(t);
@@ -65,12 +65,17 @@ void ui_relatorios_abrir(GtkWindow *pai) {
     TelaRelatorios *t = g_new0(TelaRelatorios, 1);
     g_tela = t;
 
-    GtkWidget *janela = ui_janela_criar(pai, "Relatórios", 780, 560);
+    GtkWidget *janela = ui_janela_criar(pai, "Relatórios", 820, 580);
     t->janela = GTK_WINDOW(janela);
     g_signal_connect(janela, "destroy", G_CALLBACK(ao_destruir), t);
 
-    GtkWidget *caixa = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
-    ui_margens(caixa, 14);
+    GtkWidget *caixa = gtk_box_new(GTK_ORIENTATION_VERTICAL, 12);
+    ui_margens(caixa, 18);
+
+    GtkWidget *titulo = gtk_label_new("Relatórios");
+    gtk_label_set_xalign(GTK_LABEL(titulo), 0.0f);
+    gtk_widget_add_css_class(titulo, "secao-titulo");
+    gtk_box_append(GTK_BOX(caixa), titulo);
 
     GtkWidget *barra = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
     const char *titulos[REL_TOTAL];
@@ -93,7 +98,7 @@ void ui_relatorios_abrir(GtkWindow *pai) {
     gtk_text_view_set_editable(GTK_TEXT_VIEW(texto), FALSE);
     gtk_text_view_set_cursor_visible(GTK_TEXT_VIEW(texto), FALSE);
     gtk_text_view_set_monospace(GTK_TEXT_VIEW(texto), TRUE);
-    ui_margens(texto, 8);
+    ui_margens(texto, 10);
     t->buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(texto));
 
     GtkWidget *rolagem = gtk_scrolled_window_new();

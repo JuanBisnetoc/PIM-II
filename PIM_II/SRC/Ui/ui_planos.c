@@ -115,7 +115,7 @@ static void ao_filtro(GtkCheckButton *c, gpointer dados) {
 }
 
 static void ao_destruir(GtkWidget *w, gpointer dados) {
-    (void)w;
+    ui_desconectar(w, dados);   /* nenhum callback roda após o free */
     TelaPlanos *t = dados;
     free(t->itens);
     g_free(t);
@@ -130,12 +130,17 @@ void ui_planos_abrir(GtkWindow *pai) {
     TelaPlanos *t = g_new0(TelaPlanos, 1);
     g_tela = t;
 
-    GtkWidget *janela = ui_janela_criar(pai, "Planos", 560, 520);
+    GtkWidget *janela = ui_janela_criar(pai, "Planos", 600, 540);
     t->janela = GTK_WINDOW(janela);
     g_signal_connect(janela, "destroy", G_CALLBACK(ao_destruir), t);
 
-    GtkWidget *caixa = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
-    ui_margens(caixa, 14);
+    GtkWidget *caixa = gtk_box_new(GTK_ORIENTATION_VERTICAL, 12);
+    ui_margens(caixa, 18);
+
+    GtkWidget *titulo = gtk_label_new("Dados do plano");
+    gtk_label_set_xalign(GTK_LABEL(titulo), 0.0f);
+    gtk_widget_add_css_class(titulo, "secao-titulo");
+    gtk_box_append(GTK_BOX(caixa), titulo);
 
     GtkWidget *grade = gtk_grid_new();
     gtk_grid_set_row_spacing(GTK_GRID(grade), 8);
@@ -158,6 +163,8 @@ void ui_planos_abrir(GtkWindow *pai) {
     g_signal_connect(b_novo, "clicked", G_CALLBACK(ao_novo), t);
     g_signal_connect(b_salvar, "clicked", G_CALLBACK(ao_salvar), t);
     g_signal_connect(t->btn_ativo, "clicked", G_CALLBACK(ao_alternar_ativo), t);
+
+    gtk_box_append(GTK_BOX(caixa), gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
 
     t->chk_inativos = gtk_check_button_new_with_label("Mostrar inativos");
     g_signal_connect(t->chk_inativos, "toggled", G_CALLBACK(ao_filtro), t);

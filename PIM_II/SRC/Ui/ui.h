@@ -12,6 +12,8 @@ void ui_form_consulta_abrir(GtkWindow *pai);   /* Sprint 4 */
 void ui_relatorios_abrir(GtkWindow *pai);      /* Sprint 5 */
 
 /* ------------------------------ Funções comuns ----------------------------- */
+void       ui_aplicar_estilo(void);
+void       ui_desconectar(GtkWidget *w, gpointer dados);
 void       ui_mensagem(GtkWindow *pai, const char *texto);
 void       ui_margens(GtkWidget *w, int px);
 GtkWidget *ui_janela_criar(GtkWindow *pai, const char *titulo, int largura, int altura);

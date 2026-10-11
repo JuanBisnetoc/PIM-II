@@ -195,7 +195,7 @@ static void ao_realizada(GtkButton *b, gpointer dados) { (void)b; mudar_status(d
 static void ao_cancelada(GtkButton *b, gpointer dados) { (void)b; mudar_status(dados, STATUS_CANCELADA); }
 
 static void ao_destruir(GtkWidget *w, gpointer dados) {
-    (void)w;
+    ui_desconectar(w, dados);   /* nenhum callback roda após o free */
     TelaConsultas *t = dados;
     free(t->benef_ativos);
     free(t->benef_todos);
@@ -213,17 +213,17 @@ void ui_form_consulta_abrir(GtkWindow *pai) {
     TelaConsultas *t = g_new0(TelaConsultas, 1);
     g_tela = t;
 
-    GtkWidget *janela = ui_janela_criar(pai, "Consultas", 860, 700);
+    GtkWidget *janela = ui_janela_criar(pai, "Consultas", 900, 740);
     t->janela = GTK_WINDOW(janela);
     g_signal_connect(janela, "destroy", G_CALLBACK(ao_destruir), t);
 
-    GtkWidget *caixa = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
-    ui_margens(caixa, 14);
+    GtkWidget *caixa = gtk_box_new(GTK_ORIENTATION_VERTICAL, 12);
+    ui_margens(caixa, 18);
 
     /* --- Agendamento --- */
-    GtkWidget *titulo1 = gtk_label_new(NULL);
-    gtk_label_set_markup(GTK_LABEL(titulo1), "<b>Agendar consulta</b>");
+    GtkWidget *titulo1 = gtk_label_new("Agendar consulta");
     gtk_label_set_xalign(GTK_LABEL(titulo1), 0.0f);
+    gtk_widget_add_css_class(titulo1, "secao-titulo");
     gtk_box_append(GTK_BOX(caixa), titulo1);
 
     GtkWidget *grade = gtk_grid_new();
@@ -252,9 +252,9 @@ void ui_form_consulta_abrir(GtkWindow *pai) {
     gtk_box_append(GTK_BOX(caixa), gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
 
     /* --- Histórico --- */
-    GtkWidget *titulo2 = gtk_label_new(NULL);
-    gtk_label_set_markup(GTK_LABEL(titulo2), "<b>Histórico de consultas</b>");
+    GtkWidget *titulo2 = gtk_label_new("Histórico de consultas");
     gtk_label_set_xalign(GTK_LABEL(titulo2), 0.0f);
+    gtk_widget_add_css_class(titulo2, "secao-titulo");
     gtk_box_append(GTK_BOX(caixa), titulo2);
 
     GtkWidget *filtros = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);

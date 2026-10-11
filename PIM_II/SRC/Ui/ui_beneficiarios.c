@@ -18,6 +18,72 @@ typedef struct {
 
 static TelaBeneficiarios *g_tela = NULL;
 
+/* ========================================================================== */
+/*  Geração de dados fictícios (para testes)                                  */
+/* ========================================================================== */
+
+static const char *const NOMES[] = {
+    "Ana", "Bruno", "Carla", "Daniel", "Eduarda", "Felipe", "Gabriela", "Henrique",
+    "Isabela", "João", "Karina", "Lucas", "Mariana", "Nicolas", "Olívia", "Pedro",
+    "Quésia", "Rafael", "Sofia", "Thiago", "Valentina", "Wagner"
+};
+static const char *const SOBRENOMES[] = {
+    "Silva", "Santos", "Oliveira", "Souza", "Rodrigues", "Ferreira", "Alves", "Pereira",
+    "Lima", "Gomes", "Costa", "Ribeiro", "Martins", "Carvalho", "Almeida", "Lopes",
+    "Barbosa", "Araújo", "Cardoso", "Nogueira"
+};
+static const char *const DDDS[] = {"11", "12", "13", "19", "21", "31", "41", "47", "51", "61", "71", "81"};
+
+#define N_ARR(a) ((int)(sizeof(a) / sizeof((a)[0])))
+
+/* Gera um CPF fictício com dígitos verificadores corretos, no formato 000.000.000-00. */
+static void gerar_cpf(char *out, size_t tam) {
+    int d[11];
+    for (int i = 0; i < 9; i++) d[i] = g_random_int_range(0, 10);
+    for (int t = 9; t <= 10; t++) {
+        int soma = 0;
+        for (int i = 0; i < t; i++) soma += d[i] * (t + 1 - i);
+        int dv = (soma * 10) % 11;
+        d[t] = dv == 10 ? 0 : dv;
+    }
+    g_snprintf(out, tam, "%d%d%d.%d%d%d.%d%d%d-%d%d",
+               d[0], d[1], d[2], d[3], d[4], d[5], d[6], d[7], d[8], d[9], d[10]);
+}
+
+static void ao_dados_ficticios(GtkButton *b, gpointer dados) {
+    (void)b;
+    TelaBeneficiarios *t = dados;
+
+    char nome[64];
+    g_snprintf(nome, sizeof nome, "%s %s %s", NOMES[g_random_int_range(0, N_ARR(NOMES))],
+               SOBRENOMES[g_random_int_range(0, N_ARR(SOBRENOMES))],
+               SOBRENOMES[g_random_int_range(0, N_ARR(SOBRENOMES))]);
+
+    char cpf[16];
+    gerar_cpf(cpf, sizeof cpf);
+
+    char nasc[16];
+    g_snprintf(nasc, sizeof nasc, "%02d/%02d/%04d", g_random_int_range(1, 29),
+               g_random_int_range(1, 13), g_random_int_range(1950, 2006));
+
+    char tel[20];
+    g_snprintf(tel, sizeof tel, "(%s) 9%04d-%04d", DDDS[g_random_int_range(0, N_ARR(DDDS))],
+               g_random_int_range(0, 10000), g_random_int_range(0, 10000));
+
+    ui_definir_texto(t->nome, nome);
+    ui_definir_texto(t->cpf, cpf);
+    ui_definir_texto(t->nascimento, nasc);
+    ui_definir_texto(t->telefone, tel);
+
+    if (t->qtd_planos > 0)
+        gtk_drop_down_set_selected(GTK_DROP_DOWN(t->plano),
+                                   (guint)g_random_int_range(0, t->qtd_planos));
+}
+
+/* ========================================================================== */
+/*  Tela                                                                      */
+/* ========================================================================== */
+
 /* Carrega todos os planos no dropdown (inativos aparecem marcados). */
 static void carregar_planos(TelaBeneficiarios *t) {
     free(t->planos);
@@ -178,7 +244,7 @@ static void ao_filtro_check(GtkCheckButton *c, gpointer dados) {
 }
 
 static void ao_destruir(GtkWidget *w, gpointer dados) {
-    (void)w;
+    ui_desconectar(w, dados);   /* nenhum callback roda após o free */
     TelaBeneficiarios *t = dados;
     free(t->itens);
     free(t->planos);
@@ -194,18 +260,23 @@ void ui_beneficiarios_abrir(GtkWindow *pai) {
     TelaBeneficiarios *t = g_new0(TelaBeneficiarios, 1);
     g_tela = t;
 
-    GtkWidget *janela = ui_janela_criar(pai, "Beneficiários", 760, 680);
+    GtkWidget *janela = ui_janela_criar(pai, "Beneficiários", 760, 700);
     t->janela = GTK_WINDOW(janela);
     g_signal_connect(janela, "destroy", G_CALLBACK(ao_destruir), t);
 
-    GtkWidget *caixa = gtk_box_new(GTK_ORIENTATION_VERTICAL, 10);
-    ui_margens(caixa, 14);
+    GtkWidget *caixa = gtk_box_new(GTK_ORIENTATION_VERTICAL, 12);
+    ui_margens(caixa, 18);
+
+    GtkWidget *titulo = gtk_label_new("Dados do beneficiário");
+    gtk_label_set_xalign(GTK_LABEL(titulo), 0.0f);
+    gtk_widget_add_css_class(titulo, "secao-titulo");
+    gtk_box_append(GTK_BOX(caixa), titulo);
 
     GtkWidget *grade = gtk_grid_new();
     gtk_grid_set_row_spacing(GTK_GRID(grade), 8);
     gtk_grid_set_column_spacing(GTK_GRID(grade), 10);
     t->nome = ui_entry_criar(45, NULL);
-    t->cpf = ui_entry_criar(14, "000.000.000-00");
+    t->cpf = ui_entry_criar(14, "000.000.000-00 (aceita CPF fictício)");
     t->nascimento = ui_entry_criar(10, "DD/MM/AAAA");
     t->telefone = ui_entry_criar(15, "(11) 91234-5678 (opcional)");
     t->plano = ui_dropdown_criar();
@@ -219,15 +290,22 @@ void ui_beneficiarios_abrir(GtkWindow *pai) {
     GtkWidget *botoes = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
     GtkWidget *b_novo = gtk_button_new_with_label("Novo");
     GtkWidget *b_salvar = gtk_button_new_with_label("Salvar");
+    GtkWidget *b_ficticio = gtk_button_new_with_label("Preencher dados fictícios");
     t->btn_ativo = gtk_button_new_with_label("Inativar");
     gtk_widget_add_css_class(b_salvar, "suggested-action");
     gtk_box_append(GTK_BOX(botoes), b_novo);
     gtk_box_append(GTK_BOX(botoes), b_salvar);
     gtk_box_append(GTK_BOX(botoes), t->btn_ativo);
+    gtk_widget_set_hexpand(b_ficticio, TRUE);
+    gtk_widget_set_halign(b_ficticio, GTK_ALIGN_END);
+    gtk_box_append(GTK_BOX(botoes), b_ficticio);
     gtk_box_append(GTK_BOX(caixa), botoes);
     g_signal_connect(b_novo, "clicked", G_CALLBACK(ao_novo), t);
     g_signal_connect(b_salvar, "clicked", G_CALLBACK(ao_salvar), t);
     g_signal_connect(t->btn_ativo, "clicked", G_CALLBACK(ao_alternar_ativo), t);
+    g_signal_connect(b_ficticio, "clicked", G_CALLBACK(ao_dados_ficticios), t);
+
+    gtk_box_append(GTK_BOX(caixa), gtk_separator_new(GTK_ORIENTATION_HORIZONTAL));
 
     GtkWidget *filtros = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 10);
     t->busca = ui_entry_criar(40, "Buscar por nome ou CPF");
