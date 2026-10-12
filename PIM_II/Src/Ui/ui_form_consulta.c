@@ -1,4 +1,4 @@
-/* Sprint 4: cadastro de consultas, consulta de histórico e alteração de status. */
+/* Sprint 4: cadastro de consultas, consulta de histórico, alteração de status e exclusão. */
 #include "ui.h"
 
 #include <stdlib.h>
@@ -8,7 +8,7 @@ typedef struct {
     GtkWindow    *janela;
     GtkWidget    *dd_benef, *dd_medico, *data_hora, *obs;
     GtkWidget    *dd_filtro_benef, *dd_filtro_status;
-    GtkWidget    *lbl_sel, *btn_realizada, *btn_cancelada;
+    GtkWidget    *lbl_sel, *btn_realizada, *btn_cancelada, *btn_excluir;
     GtkListBox   *lista;
 
     Beneficiario *benef_ativos;  int n_benef_ativos;   /* para agendar */
@@ -31,6 +31,7 @@ static void atualizar_selecao(TelaConsultas *t, const Consulta *c) {
         gtk_label_set_text(GTK_LABEL(t->lbl_sel), "Nenhuma consulta selecionada.");
         gtk_widget_set_sensitive(t->btn_realizada, FALSE);
         gtk_widget_set_sensitive(t->btn_cancelada, FALSE);
+        gtk_widget_set_sensitive(t->btn_excluir, FALSE);
         return;
     }
     t->sel_id = c->id;
@@ -40,6 +41,7 @@ static void atualizar_selecao(TelaConsultas *t, const Consulta *c) {
     gboolean agendada = g_strcmp0(c->status, STATUS_AGENDADA) == 0;
     gtk_widget_set_sensitive(t->btn_realizada, agendada);
     gtk_widget_set_sensitive(t->btn_cancelada, agendada);
+    gtk_widget_set_sensitive(t->btn_excluir, TRUE);   /* qualquer status pode ser excluído */
 }
 
 /* Recarrega o histórico conforme os filtros. */
@@ -194,6 +196,49 @@ static void mudar_status(TelaConsultas *t, const char *novo_status) {
 static void ao_realizada(GtkButton *b, gpointer dados) { (void)b; mudar_status(dados, STATUS_REALIZADA); }
 static void ao_cancelada(GtkButton *b, gpointer dados) { (void)b; mudar_status(dados, STATUS_CANCELADA); }
 
+/* --- Exclusão (com confirmação) --- */
+
+/* Resposta do diálogo de confirmação. 'dados' carrega o id da consulta; a tela é
+ * obtida de g_tela (se a janela já foi fechada, não há nada a fazer). */
+static void ao_confirmar_exclusao(GObject *fonte, GAsyncResult *res, gpointer dados) {
+    int id = GPOINTER_TO_INT(dados);
+    GError *erro = NULL;
+    int botao = gtk_alert_dialog_choose_finish(GTK_ALERT_DIALOG(fonte), res, &erro);
+    if (erro) {                       /* diálogo dispensado (Esc) */
+        g_error_free(erro);
+        return;
+    }
+    TelaConsultas *t = g_tela;
+    if (!t || botao != 1) return;     /* janela fechada ou "Cancelar" */
+
+    SrvResultado r = srv_consulta_excluir(id);
+    if (r != SRV_OK) {
+        ui_mensagem(t->janela, srv_mensagem(r));
+        return;
+    }
+    recarregar_historico(t);
+    ui_mensagem(t->janela, "Consulta excluída com sucesso.");
+}
+
+static void ao_excluir(GtkButton *b, gpointer dados) {
+    (void)b;
+    TelaConsultas *t = dados;
+    if (!t->sel_id) {
+        ui_mensagem(t->janela, "Selecione uma consulta na lista.");
+        return;
+    }
+    char *msg = g_strdup_printf("Excluir a consulta #%d?", t->sel_id);
+    GtkAlertDialog *dlg = gtk_alert_dialog_new("%s", msg);
+    gtk_alert_dialog_set_detail(dlg, "Esta ação apaga o registro definitivamente e não pode ser desfeita.");
+    static const char *const botoes[] = {"Cancelar", "Excluir", NULL};
+    gtk_alert_dialog_set_buttons(dlg, botoes);
+    gtk_alert_dialog_set_cancel_button(dlg, 0);
+    gtk_alert_dialog_set_default_button(dlg, 0);
+    gtk_alert_dialog_choose(dlg, t->janela, NULL, ao_confirmar_exclusao, GINT_TO_POINTER(t->sel_id));
+    g_object_unref(dlg);
+    g_free(msg);
+}
+
 static void ao_destruir(GtkWidget *w, gpointer dados) {
     ui_desconectar(w, dados);   /* nenhum callback roda após o free */
     TelaConsultas *t = dados;
@@ -277,13 +322,17 @@ void ui_form_consulta_abrir(GtkWindow *pai) {
     gtk_widget_set_hexpand(t->lbl_sel, TRUE);
     t->btn_realizada = gtk_button_new_with_label("Marcar como realizada");
     t->btn_cancelada = gtk_button_new_with_label("Cancelar consulta");
+    t->btn_excluir = gtk_button_new_with_label("Excluir consulta");
     gtk_widget_add_css_class(t->btn_cancelada, "destructive-action");
+    gtk_widget_add_css_class(t->btn_excluir, "destructive-action");
     gtk_box_append(GTK_BOX(acoes), t->lbl_sel);
     gtk_box_append(GTK_BOX(acoes), t->btn_realizada);
     gtk_box_append(GTK_BOX(acoes), t->btn_cancelada);
+    gtk_box_append(GTK_BOX(acoes), t->btn_excluir);
     gtk_box_append(GTK_BOX(caixa), acoes);
     g_signal_connect(t->btn_realizada, "clicked", G_CALLBACK(ao_realizada), t);
     g_signal_connect(t->btn_cancelada, "clicked", G_CALLBACK(ao_cancelada), t);
+    g_signal_connect(t->btn_excluir, "clicked", G_CALLBACK(ao_excluir), t);
 
     gtk_window_set_child(GTK_WINDOW(janela), caixa);
     carregar_listas(t);

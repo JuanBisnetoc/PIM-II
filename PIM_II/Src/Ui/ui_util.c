@@ -4,26 +4,71 @@
 
 /* ========================================================================== */
 /*  Estilo global                                                             */
+/*  Paleta extraída da logo NexaSaúde: azul, turquesa e verde.                */
 /* ========================================================================== */
 
 void ui_aplicar_estilo(void) {
     static const char *css =
+        /* --- paleta --- */
+        "@define-color marca_azul #0b63c5;"
+        "@define-color marca_turquesa #12a3a0;"
+        "@define-color marca_verde #6cbf4a;"
+
+        /* --- base --- */
         "window { font-size: 11pt; }"
-        ".titulo-app { font-size: 28px; font-weight: 800; }"
-        ".subtitulo-app { opacity: 0.65; }"
-        "button { border-radius: 10px; min-height: 36px; padding: 0 14px; }"
-        "button.card-menu { padding: 16px; border-radius: 16px;"
-        "  background: alpha(currentColor, 0.06); transition: all 150ms ease; }"
-        "button.card-menu:hover { background: alpha(currentColor, 0.13); }"
-        ".card-titulo { font-weight: 700; font-size: 110%; }"
+        "headerbar.barra-app { box-shadow: none; background: transparent; border: none; }"
+
+        /* --- cabeçalho da tela principal --- */
+        ".titulo-app { font-size: 30px; font-weight: 800; color: @marca_azul; }"
+        ".subtitulo-app { opacity: 0.65; font-size: 105%; }"
+        ".rotulo-secao { font-size: 80%; font-weight: 700; letter-spacing: 2px;"
+        "  opacity: 0.5; margin-top: 6px; }"
+
+        /* --- botões --- */
+        "button { border-radius: 12px; min-height: 38px; padding: 0 16px;"
+        "  transition: all 150ms ease; }"
+        "button.suggested-action { background-image: linear-gradient(to right,"
+        "  @marca_azul, @marca_turquesa); color: white; border: none; font-weight: 600;"
+        "  box-shadow: 0 2px 6px alpha(@marca_azul, 0.35); }"
+        "button.suggested-action:hover { box-shadow: 0 4px 12px alpha(@marca_azul, 0.45); }"
+        "button.destructive-action { border-radius: 12px; }"
+
+        /* --- cards do menu principal --- */
+        "button.card-menu { padding: 18px 20px; border-radius: 18px;"
+        "  background: alpha(currentColor, 0.04); background-image: none;"
+        "  border: 1px solid alpha(currentColor, 0.09);"
+        "  box-shadow: 0 1px 3px alpha(black, 0.08); }"
+        "button.card-menu:hover { background: alpha(currentColor, 0.07);"
+        "  border-color: alpha(@marca_turquesa, 0.7);"
+        "  box-shadow: 0 6px 18px alpha(@marca_azul, 0.18); }"
+        "button.card-menu:active { background: alpha(currentColor, 0.1); }"
+        ".card-titulo { font-weight: 700; font-size: 112%; }"
         ".card-sub { opacity: 0.6; font-size: 90%; }"
-        ".secao-titulo { font-weight: 700; font-size: 105%; }"
-        "entry, dropdown > button { border-radius: 10px; min-height: 36px; }"
-        "scrolledwindow.frame { border-radius: 12px; }"
+        ".card-seta { opacity: 0.35; transition: all 150ms ease; }"
+        "button.card-menu:hover .card-seta { opacity: 0.9; color: @marca_turquesa; }"
+        ".card-selo { min-width: 52px; min-height: 52px; border-radius: 16px; }"
+        ".card-selo.cor-azul { background: alpha(@marca_azul, 0.14); color: @marca_azul; }"
+        ".card-selo.cor-turquesa { background: alpha(@marca_turquesa, 0.16);"
+        "  color: @marca_turquesa; }"
+        ".card-selo.cor-verde { background: alpha(@marca_verde, 0.2); color: #4f9a30; }"
+
+        /* --- janelas filhas --- */
+        ".secao-titulo { font-weight: 700; font-size: 115%; padding-left: 10px;"
+        "  border-left: 4px solid @marca_turquesa; }"
+        "entry, dropdown > button { border-radius: 12px; min-height: 38px;"
+        "  border: 1px solid alpha(currentColor, 0.14); }"
+        "entry:focus-within { border-color: @marca_turquesa;"
+        "  box-shadow: 0 0 0 3px alpha(@marca_turquesa, 0.25); }"
+        "scrolledwindow.frame { border-radius: 14px;"
+        "  border: 1px solid alpha(currentColor, 0.1); }"
         "list { background: transparent; }"
-        "list row { border-radius: 10px; margin: 3px 6px; }"
-        "list row:selected { background: alpha(@theme_selected_bg_color, 0.25);"
-        "  color: inherit; }";
+        "list row { border-radius: 12px; margin: 3px 6px; transition: all 120ms ease; }"
+        "list row:hover { background: alpha(@marca_turquesa, 0.08); }"
+        "list row:selected { background: alpha(@marca_turquesa, 0.2); color: inherit;"
+        "  box-shadow: inset 3px 0 0 @marca_turquesa; }"
+        "separator { opacity: 0.5; }"
+        "checkbutton:checked check { background: @marca_turquesa; border-color: @marca_turquesa;"
+        "  color: white; }";
 
     GtkCssProvider *p = gtk_css_provider_new();
     gtk_css_provider_load_from_data(p, css, -1);
@@ -100,13 +145,14 @@ void ui_lista_adicionar(GtkListBox *lista, const char *texto) {
     GtkWidget *rotulo = gtk_label_new(texto);
     gtk_label_set_xalign(GTK_LABEL(rotulo), 0.0f);
     gtk_label_set_wrap(GTK_LABEL(rotulo), TRUE);
-    ui_margens(rotulo, 6);
+    ui_margens(rotulo, 8);
     gtk_list_box_append(lista, rotulo);
 }
 
 void ui_campo(GtkGrid *grid, int linha, const char *rotulo, GtkWidget *campo) {
     GtkWidget *l = gtk_label_new(rotulo);
     gtk_label_set_xalign(GTK_LABEL(l), 0.0f);
+    gtk_widget_set_opacity(l, 0.8);
     gtk_grid_attach(grid, l, 0, linha, 1, 1);
     gtk_widget_set_hexpand(campo, TRUE);
     gtk_grid_attach(grid, campo, 1, linha, 1, 1);

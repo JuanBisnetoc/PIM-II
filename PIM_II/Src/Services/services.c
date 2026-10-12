@@ -723,6 +723,17 @@ SrvResultado srv_consulta_alterar_status(int id, const char *novo_status, const 
     return concluir(st) ? SRV_OK : SRV_ERRO_DB;
 }
 
+/* Remove definitivamente a consulta, em qualquer status. */
+SrvResultado srv_consulta_excluir(int id) {
+    if (contar_por_id("SELECT COUNT(*) FROM consultas WHERE id = ?1", id) == 0)
+        return SRV_ERRO_NAO_ENCONTRADO;
+
+    sqlite3_stmt *st;
+    if (!preparar("DELETE FROM consultas WHERE id = ?1", &st)) return SRV_ERRO_DB;
+    sqlite3_bind_int(st, 1, id);
+    return concluir(st) ? SRV_OK : SRV_ERRO_DB;
+}
+
 SrvResultado srv_consulta_listar(int beneficiario_id, const char *status_filtro,
                                  Consulta **lista, int *qtd) {
     sqlite3_stmt *st;

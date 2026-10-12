@@ -80,6 +80,8 @@ SrvResultado srv_consulta_agendar(Consulta *c);
    observacao ("" = mantém a atual). */
 SrvResultado srv_consulta_alterar_status(int id, const char *novo_status,
                                          const char *observacao);
+/* Remove definitivamente a consulta, em qualquer status. */
+SrvResultado srv_consulta_excluir(int id);
 /* beneficiario_id = 0 -> todos; status_filtro "" -> todos. */
 SrvResultado srv_consulta_listar(int beneficiario_id, const char *status_filtro,
                                  Consulta **lista, int *qtd);
